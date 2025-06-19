@@ -1,0 +1,143 @@
+# Sistema de Gestión de Negocio
+
+Sistema web para la gestión de clientes, inventario y ventas, orientado a PyMEs y negocios agropecuarios.
+
+---
+
+## Tecnologías Utilizadas
+
+### Backend
+
+- **Node.js** + **Express**
+- **Apollo Server Express** (GraphQL)
+- **MongoDB** (Mongoose)
+- **JWT** para autenticación
+- **dotenv** para variables de entorno
+- **bcryptjs** para hash de contraseñas
+
+### Frontend
+
+- **React** (CRA)
+- **Material UI** (MUI)
+- **Apollo Client** (GraphQL)
+- **React Router**
+- **Recharts** (gráficos)
+- **ESLint** y **Prettier** (calidad de código)
+
+---
+
+## Estructura del Proyecto
+
+```
+gestionnegocio/
+│
+├── backend/
+│   ├── .env
+│   ├── package.json
+│   └── src/
+│       ├── index.js           # Entry point, configuración Express/Apollo/MongoDB
+│       ├── models/            # Modelos Mongoose: Client, Product, Sale, User
+│       ├── resolvers/         # Lógica de resolvers GraphQL
+│       ├── services/          # Servicios auxiliares (ej: apiService.js)
+│       └── typeDefs/          # Definición de esquemas GraphQL
+│
+├── frontend/
+│   ├── package.json
+│   ├── public/
+│   │   └── index.html
+│   └── src/
+│       ├── App.js             # Rutas principales y provider Apollo
+│       ├── index.js           # Entry point React
+│       ├── components/        # Layout, rutas protegidas, tarjetas resumen
+│       ├── pages/             # Vistas: Dashboard, Clients, Inventory, Sales, Login, Register
+│       └── utils/             # Utilidades (auth, api, exportación)
+│
+└── README.md
+```
+
+---
+
+## Instalación y Ejecución
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/tuusuario/gestionnegocio.git
+cd gestionnegocio
+```
+
+### 2. Configurar el Backend
+
+```bash
+cd backend
+cp .env.example .env   # O crea tu propio .env
+npm install
+npm run dev            # o npm start
+```
+
+Variables de entorno principales:
+
+- `MONGODB_URI` (ej: mongodb://localhost:27017/agrogestion)
+- `JWT_SECRET`
+- `PORT` (por defecto 4000)
+
+### 3. Configurar el Frontend
+
+```bash
+cd ../frontend
+npm install
+npm start
+```
+
+La app estará disponible en [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Funcionalidades Principales
+
+- **Autenticación de usuarios** (registro, login, JWT)
+- **Gestión de clientes** (ABM, búsqueda, filtros, exportar)
+- **Gestión de inventario** (productos, stock, categorías, exportar)
+- **Gestión de ventas** (registro, edición, filtrado, exportar)
+- **Dashboard** con métricas y gráficos
+- **Responsive** y diseño profesional con Material UI
+
+---
+
+## Estructura de Carpetas Destacada
+
+### Backend
+
+- **models/**: Modelos Mongoose (`Client.js`, `Product.js`, `Sale.js`, `User.js`)
+- **resolvers/**: Lógica de queries y mutations GraphQL
+- **typeDefs/**: Esquemas GraphQL
+- **services/**: Servicios auxiliares (ej: llamadas a APIs externas)
+
+### Frontend
+
+- **components/**: Layout principal, rutas protegidas, tarjetas resumen
+- **pages/**: Vistas principales (Dashboard, Clients, Inventory, Sales, Login, Register)
+- **utils/**: Autenticación, helpers de exportación, configuración Apollo
+
+---
+
+## Scripts Útiles
+
+### Backend
+
+- `npm run dev` - Inicia el backend en modo desarrollo con nodemon
+- `npm start` - Inicia el backend en modo producción
+
+### Frontend
+
+- `npm start` - Inicia la app React en modo desarrollo
+
+---
+
+## Licencia
+
+MIT
+
+---
+
+>
