@@ -70,20 +70,18 @@ const typeDefs = gql`
 
   type Sale {
     id: ID!
-    client: Client!
-    products: [SaleProduct!]!
+    client: Client! # <--- Esto es importante
     totalAmount: Float!
-    paymentMethod: String!
     status: String!
-    notes: String
-    createdBy: User!
+    paymentMethod: String!
     createdAt: String!
-    updatedAt: String!
+    products: [SaleProduct!]!
+    notes: String
   }
 
   type SaleProduct {
     product: Product!
-    quantity: Float!
+    quantity: Int!
     unitPrice: Float!
     currency: String!
   }

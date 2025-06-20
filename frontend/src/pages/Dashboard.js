@@ -1,62 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Grid,
-  Paper,
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Grid, Paper, Typography, Box, CircularProgress } from "@mui/material";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 // Componentes personalizados
-import SummaryCard from '../components/SummaryCard';
+import SummaryCard from "../components/SummaryCard";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [dolarData, setDolarData] = useState(null);
+  const [dolarOficial, setDolarOficial] = useState(null);
+  const [dolarFecha, setDolarFecha] = useState(null);
   const [cerealesData, setCerealesData] = useState(null);
   const [ventasData, setVentasData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [cereales, setCereales] = useState(null);
+  const [loadingCereales, setLoadingCereales] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDatos = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        // Simulación de datos de ventas (reemplazar con datos reales de la API)
-        const ventasMock = [
-          { name: 'Soja', value: 400 },
-          { name: 'Maíz', value: 300 },
-          { name: 'Trigo', value: 300 },
-          { name: 'Girasol', value: 200 },
+        // Dólar
+        const dolarRes = await axios.get("http://localhost:4000/api/dolar");
+        if (
+          dolarRes.data?.oficial?.value_buy !== undefined &&
+          dolarRes.data?.oficial?.value_sell !== undefined
+        ) {
+          setDolarOficial({
+            compra: dolarRes.data.oficial.value_buy,
+            venta: dolarRes.data.oficial.value_sell,
+          });
+          setDolarFecha(dolarRes.data.last_update);
+        }
+
+        // Cereales
+
+        // Simulación de datos de ventas
+        const ventasSimuladas = [
+          { name: "Soja", value: 60000 },
+          { name: "Maíz", value: 50000 },
+          { name: "Trigo", value: 40000 },
         ];
-        setVentasData(ventasMock);
-
-        // Obtener cotización del dólar
-        const dolarResponse = await axios.get('https://api.estadisticas.bcra.gob.ar/api/estadistica/principalesvariables/1/2023-01-01/2023-12-31');
-        setDolarData(dolarResponse.data);
-
-        // Obtener precios de cereales
-        const cerealesResponse = await axios.get('https://api.agrofy.com.ar/api/v1/market-prices');
-        setCerealesData(cerealesResponse.data);
-
-        setLoading(false);
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
+        setVentasData(ventasSimuladas);
+      } catch (err) {
+        console.error("Error al cargar datos:", err);
+        setError("Error al obtener datos");
+        setDolarOficial(null);
+        setDolarFecha(null);
+        setCerealesData(null);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchDatos();
+  }, []);
+
+  useEffect(() => {
+    const fetchCereales = async () => {
+      setLoadingCereales(true);
+      try {
+        const response = await axios.get("http://localhost:4000/api/cereales");
+        setCereales(response.data);
+      } catch (err) {
+        console.error("Error al obtener datos de cereales:", err);
+        setCereales(null);
+      } finally {
+        setLoadingCereales(false);
+      }
+    };
+
+    fetchCereales();
   }, []);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
         <CircularProgress />
       </Box>
     );
   }
+
+  // 👉 Cálculo de total y promedio de ventas
+  const totalVentas = ventasData.reduce((acc, item) => acc + item.value, 0);
+  const promedioVentas =
+    ventasData.length > 0 ? (totalVentas / ventasData.length).toFixed(2) : 0;
 
   return (
     <Box>
@@ -69,31 +106,33 @@ function Dashboard() {
         <Grid item xs={12} md={4}>
           <SummaryCard
             title="Cotización Dólar"
-            value={dolarData?.valor || 'N/A'}
-            subtitle="Última actualización"
+            value={
+              dolarOficial
+                ? `Compra: $${dolarOficial.compra} / Venta: $${dolarOficial.venta}`
+                : "N/A"
+            }
+            subtitle={
+              dolarFecha
+                ? `Última actualización: ${new Date(
+                    dolarFecha
+                  ).toLocaleDateString("es-AR")}`
+                : ""
+            }
             icon="currency_exchange"
           />
         </Grid>
         <Grid item xs={12} md={4}>
           <SummaryCard
-            title="Precio Soja"
-            value={cerealesData?.soja || 'N/A'}
-            subtitle="USD/ton"
-            icon="grain"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <SummaryCard
             title="Ventas del Mes"
-            value="$150,000"
-            subtitle="Total"
+            value={`$${totalVentas.toLocaleString()}`}
+            subtitle={`Promedio por producto: $${promedioVentas}`}
             icon="trending_up"
           />
         </Grid>
 
         {/* Gráfico de ventas por producto */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '400px' }}>
+          <Paper sx={{ p: 2, height: "400px" }}>
             <Typography variant="h6" gutterBottom>
               Ventas por Producto
             </Typography>
@@ -107,10 +146,15 @@ function Dashboard() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                 >
                   {ventasData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -119,10 +163,32 @@ function Dashboard() {
           </Paper>
         </Grid>
 
-        {/* Otras métricas o gráficos pueden agregarse aquí */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Cotizaciones de Cereales
+            </Typography>
+            {loadingCereales ? (
+              <div>Cargando...</div>
+            ) : cereales ? (
+              <ul>
+                {Object.entries(cereales).map(([nombre, datos]) => (
+                  <li key={nombre}>
+                    <strong>
+                      {nombre.charAt(0).toUpperCase() + nombre.slice(1)}:
+                    </strong>{" "}
+                    ${datos.precio} {datos.unidad} (Fecha: {datos.fecha})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div>No hay datos de cereales disponibles.</div>
+            )}
+          </Paper>
+        </Grid>
       </Grid>
     </Box>
   );
 }
 
-export default Dashboard; 
+export default Dashboard;

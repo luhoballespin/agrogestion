@@ -1,16 +1,50 @@
-import React, { useState } from 'react';
-import { useMutation, useQuery, gql } from '@apollo/client';
-import { Box, Typography, Button, Paper, TextField, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Grid, InputAdornment, IconButton, TableSortLabel, TablePagination, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Menu } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, FileDownload as FileDownloadIcon, PictureAsPdf as PdfIcon, TableChart as ExcelIcon } from '@mui/icons-material';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import React, { useState } from "react";
+import { useMutation, useQuery, gql } from "@apollo/client";
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  TextField,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Grid,
+  InputAdornment,
+  IconButton,
+  TableSortLabel,
+  TablePagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tooltip,
+  Menu,
+} from "@mui/material";
+import {
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  FileDownload as FileDownloadIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
+} from "@mui/icons-material";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
-const GET_SALES = gql`
-  query GetSales {
+const GET_SALES_AND_CLIENTS = gql`
+  query GetSalesAndClients {
     sales {
       id
       client {
+        id
         name
       }
       totalAmount
@@ -28,12 +62,26 @@ const GET_SALES = gql`
       }
       notes
     }
+    clients {
+      id
+      name
+    }
   }
 `;
 
 const CREATE_SALE_MUTATION = gql`
-  mutation CreateSale($client: ID!, $products: [SaleProductInput!]!, $paymentMethod: String!, $notes: String) {
-    createSale(client: $client, products: $products, paymentMethod: $paymentMethod, notes: $notes) {
+  mutation CreateSale(
+    $client: ID!
+    $products: [SaleProductInput!]!
+    $paymentMethod: String!
+    $notes: String
+  ) {
+    createSale(
+      client: $client
+      products: $products
+      paymentMethod: $paymentMethod
+      notes: $notes
+    ) {
       id
       totalAmount
       status
@@ -70,7 +118,7 @@ function descendingComparator(a, b, orderBy) {
 }
 
 function getComparator(order, orderBy) {
-  return order === 'desc'
+  return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
@@ -86,53 +134,61 @@ function stableSort(array, comparator) {
 }
 
 function Sales() {
-  const { loading: queryLoading, error, data, refetch } = useQuery(GET_SALES);
+  const {
+    loading: queryLoading,
+    error,
+    data,
+    refetch,
+  } = useQuery(GET_SALES_AND_CLIENTS);
   const [formData, setFormData] = useState({
-    client: '',
-    paymentMethod: 'cash',
-    notes: '',
+    client: "",
+    paymentMethod: "cash",
+    notes: "",
   });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [orderBy, setOrderBy] = useState('createdAt');
-  const [order, setOrder] = useState('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [order, setOrder] = useState("desc");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [editingSale, setEditingSale] = useState(null);
   const [deleteSaleId, setDeleteSaleId] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    clientId: '',
-    total: '',
-    status: '',
-    paymentMethod: '',
-    date: ''
+    clientId: "",
+    total: "",
+    status: "",
+    paymentMethod: "",
+    date: "",
   });
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
 
-  const [createSale, { loading: mutationLoading }] = useMutation(CREATE_SALE_MUTATION, {
-    onCompleted: (data) => {
-      console.log('Venta creada:', data);
-      refetch(); // Recargar la lista de ventas
-      setFormData({ client: '', paymentMethod: 'cash', notes: '' }); // Limpiar formulario
-    },
-    onError: (error) => {
-      console.error('Error al crear venta:', error);
-    },
-  });
+  const [createSale, { loading: mutationLoading }] = useMutation(
+    CREATE_SALE_MUTATION,
+    {
+      onCompleted: (data) => {
+        console.log("Venta creada:", data);
+        refetch(); // Recargar la lista de ventas
+        setFormData({ client: "", paymentMethod: "cash", notes: "" }); // Limpiar formulario
+      },
+      onError: (error) => {
+        console.error("Error al crear venta:", error);
+      },
+    }
+  );
 
   const [updateSale] = useMutation(UPDATE_SALE_MUTATION, {
     onCompleted: () => {
       setEditingSale(null);
       refetch();
-    }
+    },
   });
 
   const [deleteSale] = useMutation(DELETE_SALE_MUTATION, {
     onCompleted: () => {
       setDeleteSaleId(null);
       refetch();
-    }
+    },
   });
 
   const handleChange = (e) => {
@@ -160,7 +216,7 @@ function Sales() {
   };
 
   const handleClearSearch = () => {
-    setSearchTerm('');
+    setSearchTerm("");
   };
 
   const handleStatusFilterChange = (event) => {
@@ -172,28 +228,36 @@ function Sales() {
   };
 
   const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
 
   const filteredAndSortedSales = React.useMemo(() => {
-    const filtered = (data?.sales || []).filter(sale => {
-      const matchesSearch = 
+    const filtered = (data?.sales || []).filter((sale) => {
+      const matchesSearch =
         sale.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.id.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = 
-        statusFilter === 'all' || sale.status === statusFilter;
-      
-      const matchesPaymentMethod = 
-        paymentMethodFilter === 'all' || sale.paymentMethod === paymentMethodFilter;
+
+      const matchesStatus =
+        statusFilter === "all" || sale.status === statusFilter;
+
+      const matchesPaymentMethod =
+        paymentMethodFilter === "all" ||
+        sale.paymentMethod === paymentMethodFilter;
 
       return matchesSearch && matchesStatus && matchesPaymentMethod;
     });
 
     return stableSort(filtered, getComparator(order, orderBy));
-  }, [data?.sales, searchTerm, statusFilter, paymentMethodFilter, order, orderBy]);
+  }, [
+    data?.sales,
+    searchTerm,
+    statusFilter,
+    paymentMethodFilter,
+    order,
+    orderBy,
+  ]);
 
   const paginatedSales = React.useMemo(() => {
     return filteredAndSortedSales?.slice(
@@ -218,7 +282,7 @@ function Sales() {
       total: sale.totalAmount.toString(),
       status: sale.status,
       paymentMethod: sale.paymentMethod,
-      date: new Date(sale.createdAt).toISOString().split('T')[0]
+      date: new Date(sale.createdAt).toISOString().split("T")[0],
     });
   };
 
@@ -236,17 +300,17 @@ function Sales() {
           total: parseFloat(editFormData.total),
           status: editFormData.status,
           paymentMethod: editFormData.paymentMethod,
-          date: editFormData.date
-        }
-      }
+          date: editFormData.date,
+        },
+      },
     });
   };
 
   const handleDeleteConfirm = () => {
     deleteSale({
       variables: {
-        id: deleteSaleId
-      }
+        id: deleteSaleId,
+      },
     });
   };
 
@@ -259,66 +323,104 @@ function Sales() {
   };
 
   const exportToExcel = () => {
-    const data = filteredAndSortedSales.map(sale => ({
-      'ID': sale.id,
-      'Cliente': sale.client.name,
-      'Total': sale.totalAmount,
-      'Estado': sale.status === 'completed' ? 'Completada' : 
-                sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
-      'Método de Pago': sale.paymentMethod === 'cash' ? 'Efectivo' :
-                       sale.paymentMethod === 'credit' ? 'Crédito' : 'Transferencia',
-      'Fecha': new Date(sale.createdAt).toLocaleDateString(),
-      'Productos': sale.products.map(p => `${p.product.name} (${p.quantity} x $${p.price})`).join(', ')
+    const data = filteredAndSortedSales.map((sale) => ({
+      ID: sale.id,
+      Cliente: sale.client.name,
+      Total: sale.totalAmount,
+      Estado:
+        sale.status === "completed"
+          ? "Completada"
+          : sale.status === "pending"
+          ? "Pendiente"
+          : "Cancelada",
+      "Método de Pago":
+        sale.paymentMethod === "cash"
+          ? "Efectivo"
+          : sale.paymentMethod === "credit"
+          ? "Crédito"
+          : "Transferencia",
+      Fecha: new Date(sale.createdAt).toLocaleDateString(),
+      Productos: sale.products
+        .map((p) => `${p.product.name} (${p.quantity} x $${p.price})`)
+        .join(", "),
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
-    XLSX.writeFile(wb, 'ventas.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, "Ventas");
+    XLSX.writeFile(wb, "ventas.xlsx");
     handleExportClose();
   };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    
+
     // Título
     doc.setFontSize(16);
-    doc.text('Reporte de Ventas', 14, 15);
-    
+    doc.text("Reporte de Ventas", 14, 15);
+
     // Fecha
     doc.setFontSize(10);
     doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 14, 22);
-    
+
     // Tabla
-    const tableData = filteredAndSortedSales.map(sale => [
+    const tableData = filteredAndSortedSales.map((sale) => [
       sale.id,
       sale.client.name,
       sale.totalAmount,
-      sale.status === 'completed' ? 'Completada' : 
-      sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
-      sale.paymentMethod === 'cash' ? 'Efectivo' :
-      sale.paymentMethod === 'credit' ? 'Crédito' : 'Transferencia',
+      sale.status === "completed"
+        ? "Completada"
+        : sale.status === "pending"
+        ? "Pendiente"
+        : "Cancelada",
+      sale.paymentMethod === "cash"
+        ? "Efectivo"
+        : sale.paymentMethod === "credit"
+        ? "Crédito"
+        : "Transferencia",
       new Date(sale.createdAt).toLocaleDateString(),
-      sale.products.map(p => `${p.product.name} (${p.quantity} x $${p.price})`).join(', ')
+      sale.products
+        .map((p) => `${p.product.name} (${p.quantity} x $${p.price})`)
+        .join(", "),
     ]);
 
     doc.autoTable({
-      head: [['ID', 'Cliente', 'Total', 'Estado', 'Método de Pago', 'Fecha', 'Productos']],
+      head: [
+        [
+          "ID",
+          "Cliente",
+          "Total",
+          "Estado",
+          "Método de Pago",
+          "Fecha",
+          "Productos",
+        ],
+      ],
       body: tableData,
       startY: 30,
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [41, 128, 185] }
+      headStyles: { fillColor: [41, 128, 185] },
     });
 
-    doc.save('ventas.pdf');
+    doc.save("ventas.pdf");
     handleExportClose();
   };
 
-  if (error) return <Typography color="error">Error al cargar las ventas: {error.message}</Typography>;
+  if (error)
+    return (
+      <Typography color="error">
+        Error al cargar las ventas: {error.message}
+      </Typography>
+    );
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h4">Gestión de Ventas</Typography>
         <Box>
           <Button
@@ -351,9 +453,10 @@ function Sales() {
           Nueva Venta
         </Typography>
         <Box component="form" onSubmit={handleSubmit}>
-          {(!data?.clients || data.clients.length === 0) ? (
+          {!data?.clients || data.clients.length === 0 ? (
             <Typography color="error" sx={{ my: 2 }}>
-              No hay clientes cargados. Por favor, registre un cliente antes de crear una venta.
+              No hay clientes cargados. Por favor, registre un cliente antes de
+              crear una venta.
             </Typography>
           ) : (
             <TextField
@@ -395,17 +498,23 @@ function Sales() {
             value={formData.notes}
             onChange={handleChange}
           />
-          <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }} disabled={mutationLoading}>
-            {mutationLoading ? 'Creando venta...' : 'Crear Venta'}
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ mt: 2 }}
+            disabled={mutationLoading}
+          >
+            {mutationLoading ? "Creando venta..." : "Crear Venta"}
           </Button>
         </Box>
       </Paper>
-      
+
       <Paper sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
           Listado de Ventas
         </Typography>
-        
+
         {/* Filtros y Búsqueda */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} md={4}>
@@ -467,7 +576,8 @@ function Sales() {
         ) : (
           <>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Mostrando {filteredAndSortedSales?.length} de {data?.sales.length} ventas
+              Mostrando {filteredAndSortedSales?.length} de {data?.sales.length}{" "}
+              ventas
             </Typography>
             <TableContainer>
               <Table>
@@ -475,54 +585,54 @@ function Sales() {
                   <TableRow>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'id'}
-                        direction={orderBy === 'id' ? order : 'asc'}
-                        onClick={() => handleRequestSort('id')}
+                        active={orderBy === "id"}
+                        direction={orderBy === "id" ? order : "asc"}
+                        onClick={() => handleRequestSort("id")}
                       >
                         ID
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'client'}
-                        direction={orderBy === 'client' ? order : 'asc'}
-                        onClick={() => handleRequestSort('client')}
+                        active={orderBy === "client"}
+                        direction={orderBy === "client" ? order : "asc"}
+                        onClick={() => handleRequestSort("client")}
                       >
                         Cliente
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'totalAmount'}
-                        direction={orderBy === 'totalAmount' ? order : 'asc'}
-                        onClick={() => handleRequestSort('totalAmount')}
+                        active={orderBy === "totalAmount"}
+                        direction={orderBy === "totalAmount" ? order : "asc"}
+                        onClick={() => handleRequestSort("totalAmount")}
                       >
                         Total
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'status'}
-                        direction={orderBy === 'status' ? order : 'asc'}
-                        onClick={() => handleRequestSort('status')}
+                        active={orderBy === "status"}
+                        direction={orderBy === "status" ? order : "asc"}
+                        onClick={() => handleRequestSort("status")}
                       >
                         Estado
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'paymentMethod'}
-                        direction={orderBy === 'paymentMethod' ? order : 'asc'}
-                        onClick={() => handleRequestSort('paymentMethod')}
+                        active={orderBy === "paymentMethod"}
+                        direction={orderBy === "paymentMethod" ? order : "asc"}
+                        onClick={() => handleRequestSort("paymentMethod")}
                       >
                         Método de Pago
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'createdAt'}
-                        direction={orderBy === 'createdAt' ? order : 'asc'}
-                        onClick={() => handleRequestSort('createdAt')}
+                        active={orderBy === "createdAt"}
+                        direction={orderBy === "createdAt" ? order : "asc"}
+                        onClick={() => handleRequestSort("createdAt")}
                       >
                         Fecha
                       </TableSortLabel>
@@ -532,24 +642,32 @@ function Sales() {
                 </TableHead>
                 <TableBody>
                   {paginatedSales?.map((sale) => (
-                    <TableRow 
+                    <TableRow
                       key={sale.id}
                       sx={{
-                        backgroundColor: sale.status === 'pending' ? '#fff3e0' : 
-                                       sale.status === 'cancelled' ? '#ffebee' : 'inherit'
+                        backgroundColor:
+                          sale.status === "pending"
+                            ? "#fff3e0"
+                            : sale.status === "cancelled"
+                            ? "#ffebee"
+                            : "inherit",
                       }}
                     >
                       <TableCell>{sale.id}</TableCell>
-                      <TableCell>{sale.client?.name || 'Sin cliente'}</TableCell>
+                      <TableCell>
+                        {sale.client?.name || "Sin cliente"}
+                      </TableCell>
                       <TableCell>${sale.totalAmount}</TableCell>
                       <TableCell>{sale.status}</TableCell>
                       <TableCell>{sale.paymentMethod}</TableCell>
-                      <TableCell>{new Date(sale.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(sale.createdAt).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>
                         <Box display="flex" gap={1}>
                           <Tooltip title="Editar">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               onClick={() => handleEditClick(sale)}
                               color="primary"
                             >
@@ -557,8 +675,8 @@ function Sales() {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Eliminar">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               onClick={() => handleDeleteClick(sale.id)}
                               color="error"
                             >
@@ -581,7 +699,7 @@ function Sales() {
               onRowsPerPageChange={handleChangeRowsPerPage}
               rowsPerPageOptions={[5, 10, 25, 50]}
               labelRowsPerPage="Filas por página:"
-              labelDisplayedRows={({ from, to, count }) => 
+              labelDisplayedRows={({ from, to, count }) =>
                 `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
               }
             />
@@ -590,7 +708,12 @@ function Sales() {
       </Paper>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingSale} onClose={() => setEditingSale(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={!!editingSale}
+        onClose={() => setEditingSale(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Editar Venta</DialogTitle>
         <form onSubmit={handleEditSubmit}>
           <DialogContent>
@@ -601,7 +724,12 @@ function Sales() {
                   select
                   label="Cliente"
                   value={editFormData.clientId}
-                  onChange={(e) => setEditFormData({...editFormData, clientId: e.target.value})}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      clientId: e.target.value,
+                    })
+                  }
                   required
                   disabled={!data?.clients || data.clients.length === 0}
                 >
@@ -622,7 +750,9 @@ function Sales() {
                   label="Total"
                   type="number"
                   value={editFormData.total}
-                  onChange={(e) => setEditFormData({...editFormData, total: e.target.value})}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, total: e.target.value })
+                  }
                   required
                 />
               </Grid>
@@ -632,7 +762,9 @@ function Sales() {
                   select
                   label="Estado"
                   value={editFormData.status}
-                  onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, status: e.target.value })
+                  }
                   required
                 >
                   <MenuItem value="completed">Completada</MenuItem>
@@ -646,7 +778,12 @@ function Sales() {
                   select
                   label="Método de Pago"
                   value={editFormData.paymentMethod}
-                  onChange={(e) => setEditFormData({...editFormData, paymentMethod: e.target.value})}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      paymentMethod: e.target.value,
+                    })
+                  }
                   required
                 >
                   <MenuItem value="cash">Efectivo</MenuItem>
@@ -660,7 +797,9 @@ function Sales() {
                   label="Fecha"
                   type="date"
                   value={editFormData.date}
-                  onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, date: e.target.value })
+                  }
                   required
                   InputLabelProps={{
                     shrink: true,
@@ -683,12 +822,17 @@ function Sales() {
         <DialogTitle>Confirmar Eliminación</DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Está seguro que desea eliminar esta venta? Esta acción no se puede deshacer.
+            ¿Está seguro que desea eliminar esta venta? Esta acción no se puede
+            deshacer.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteSaleId(null)}>Cancelar</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
             Eliminar
           </Button>
         </DialogActions>

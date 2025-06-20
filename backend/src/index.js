@@ -4,6 +4,7 @@ const { ApolloServer } = require("apollo-server-express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const axios = require("axios"); // Asegúrate de tener este import
 
 // Importar typeDefs y resolvers
 const typeDefs = require("./typeDefs");
@@ -22,6 +23,26 @@ mongoose
 const app = express();
 app.use(cors());
 app.use(express.json());
+// Endpoint proxy para cereales (Agrofy)
+app.get("/api/cereales", (req, res) => {
+  // Datos de ejemplo
+  res.json({
+    soja: { precio: 350, unidad: "USD/ton", fecha: "2025-06-19" },
+    maiz: { precio: 180, unidad: "USD/ton", fecha: "2025-06-19" },
+    trigo: { precio: 220, unidad: "USD/ton", fecha: "2025-06-19" },
+  });
+});
+
+// Endpoint proxy para el dólar oficial
+app.get("/api/dolar", async (req, res) => {
+  try {
+    const response = await axios.get("https://api.bluelytics.com.ar/v2/latest");
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error al obtener datos del dólar:", error.message);
+    res.status(500).json({ error: "Error al obtener datos del dólar" });
+  }
+});
 
 // Configuración de Apollo Server
 const server = new ApolloServer({
@@ -50,6 +71,8 @@ const server = new ApolloServer({
     return err;
   },
 });
+
+// Ruta para obtener datos del BCRA
 
 // Iniciar el servidor
 async function startServer() {

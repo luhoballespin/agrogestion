@@ -33,7 +33,7 @@ const resolvers = {
       return Client.findById(id);
     },
     sales: async () => {
-      return Sale.find().populate("client products.product createdBy");
+      return Sale.find().populate("client");
     },
     sale: async (_, { id }) => {
       return Sale.findById(id).populate("client products.product createdBy");
