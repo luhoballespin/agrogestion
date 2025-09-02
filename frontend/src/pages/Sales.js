@@ -55,6 +55,11 @@ const GET_SALES_AND_CLIENTS = gql`
         product {
           id
           name
+          price {
+            current
+            currency
+            lastUpdate
+          }
         }
         quantity
         unitPrice
@@ -85,22 +90,36 @@ const CREATE_SALE_MUTATION = gql`
       id
       totalAmount
       status
+      client {
+        id
+        name
+      }
+      products {
+        product {
+          id
+          name
+        }
+        quantity
+        unitPrice
+        currency
+      }
+      createdAt
     }
   }
 `;
 
 const UPDATE_SALE_MUTATION = gql`
-  mutation UpdateSale($id: ID!, $input: SaleInput!) {
-    updateSale(id: $id, input: $input) {
+  mutation UpdateSale($id: ID!, $status: String, $notes: String) {
+    updateSale(id: $id, status: $status, notes: $notes) {
       id
       client {
         id
         name
       }
-      total
+      totalAmount
       status
       paymentMethod
-      date
+      createdAt
     }
   }
 `;
@@ -110,6 +129,22 @@ const DELETE_SALE_MUTATION = gql`
     deleteSale(id: $id)
   }
 `;
+
+const GET_PRODUCTS = gql`
+  query {
+    products {
+      id
+      name
+      stock
+      price {
+        current
+        currency
+        lastUpdate
+      }
+    }
+  }
+`;
+
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -140,6 +175,7 @@ function Sales() {
     data,
     refetch,
   } = useQuery(GET_SALES_AND_CLIENTS);
+  const { data: productsData } = useQuery(GET_PRODUCTS);
   const [formData, setFormData] = useState({
     client: "",
     paymentMethod: "cash",
@@ -155,13 +191,11 @@ function Sales() {
   const [editingSale, setEditingSale] = useState(null);
   const [deleteSaleId, setDeleteSaleId] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    clientId: "",
-    total: "",
     status: "",
-    paymentMethod: "",
-    date: "",
+    notes: "",
   });
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   const [createSale, { loading: mutationLoading }] = useMutation(
     CREATE_SALE_MUTATION,
@@ -199,12 +233,65 @@ function Sales() {
     }));
   };
 
+  // Agregar producto a la venta
+  const handleAddProduct = (productId) => {
+    const product = productsData.products.find((p) => p.id === productId);
+    setSelectedProducts([
+      ...selectedProducts,
+      {
+        productId,
+        name: product.name,
+        price: product.price.current,
+        quantity: 1,
+        stock: product.stock,
+      },
+    ]);
+  };
+
+  // Cambiar cantidad
+  const handleQuantityChange = (index, quantity) => {
+    setSelectedProducts((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, quantity: Math.max(1, Math.min(quantity, item.stock)) }
+          : item
+      )
+    );
+  };
+
+  // Eliminar producto
+  const handleRemoveProduct = (index) => {
+    setSelectedProducts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Calcular total
+  const totalAmount = selectedProducts.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (selectedProducts.length === 0) {
+      alert('Por favor seleccione al menos un producto');
+      return;
+    }
+    
+    if (!formData.client) {
+      alert('Por favor seleccione un cliente');
+      return;
+    }
+
     createSale({
       variables: {
         client: formData.client,
-        products: [], // Aquí deberías agregar los productos seleccionados
+        products: selectedProducts.map((item) => ({
+          product: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          currency: "ARS",
+        })),
         paymentMethod: formData.paymentMethod,
         notes: formData.notes,
       },
@@ -278,11 +365,8 @@ function Sales() {
   const handleEditClick = (sale) => {
     setEditingSale(sale);
     setEditFormData({
-      clientId: sale.client.id,
-      total: sale.totalAmount.toString(),
       status: sale.status,
-      paymentMethod: sale.paymentMethod,
-      date: new Date(sale.createdAt).toISOString().split("T")[0],
+      notes: sale.notes || "",
     });
   };
 
@@ -295,13 +379,8 @@ function Sales() {
     updateSale({
       variables: {
         id: editingSale.id,
-        input: {
-          clientId: editFormData.clientId,
-          total: parseFloat(editFormData.total),
-          status: editFormData.status,
-          paymentMethod: editFormData.paymentMethod,
-          date: editFormData.date,
-        },
+        status: editFormData.status,
+        notes: editFormData.notes || "",
       },
     });
   };
@@ -414,20 +493,39 @@ function Sales() {
     );
 
   return (
-    <Box>
+    <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom sx={{ 
+          fontWeight: 'bold', 
+          background: 'linear-gradient(45deg, #1976D2, #42A5F5)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          🛒 Gestión de Ventas
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          Administra las ventas del sistema agropecuario
+        </Typography>
+      </Box>
+
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h4">Gestión de Ventas</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          Nueva Venta
+        </Typography>
         <Box>
           <Button
             variant="contained"
             color="primary"
             onClick={handleExportClick}
             startIcon={<FileDownloadIcon />}
+            sx={{ borderRadius: 2 }}
           >
             Exportar
           </Button>
@@ -445,13 +543,7 @@ function Sales() {
           </Menu>
         </Box>
       </Box>
-      <Typography variant="h4" gutterBottom>
-        Ventas
-      </Typography>
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Nueva Venta
-        </Typography>
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: 3 }}>
         <Box component="form" onSubmit={handleSubmit}>
           {!data?.clients || data.clients.length === 0 ? (
             <Typography color="error" sx={{ my: 2 }}>
@@ -498,21 +590,71 @@ function Sales() {
             value={formData.notes}
             onChange={handleChange}
           />
+          {/* Selección de productos */}
+          <TextField
+            select
+            label="Agregar producto"
+            fullWidth
+            onChange={(e) => handleAddProduct(e.target.value)}
+            value=""
+            sx={{ mb: 2 }}
+          >
+            {productsData?.products
+              .filter(
+                (p) =>
+                  !selectedProducts.some((sp) => sp.productId === p.id) &&
+                  p.stock > 0
+              )
+              .map((product) => (
+                <MenuItem key={product.id} value={product.id}>
+                  {product.name} (${product.price.current}) - Stock:{" "}
+                  {product.stock}
+                </MenuItem>
+              ))}
+          </TextField>
+          {/* Lista de productos seleccionados */}
+          {selectedProducts.map((item, index) => (
+            <Box key={item.productId} display="flex" alignItems="center" mb={1}>
+              <Typography sx={{ mr: 2 }}>
+                {item.name} (${item.price}) x
+              </Typography>
+              <TextField
+                type="number"
+                size="small"
+                value={item.quantity}
+                onChange={(e) =>
+                  handleQuantityChange(index, Number(e.target.value))
+                }
+                inputProps={{ min: 1, max: item.stock }}
+                sx={{ width: 80, mr: 2 }}
+              />
+              <Button
+                color="error"
+                onClick={() => handleRemoveProduct(index)}
+                size="small"
+              >
+                Quitar
+              </Button>
+            </Box>
+          ))}
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Total: ${totalAmount}
+          </Typography>
           <Button
             type="submit"
             variant="contained"
             color="primary"
             sx={{ mt: 2 }}
-            disabled={mutationLoading}
+            disabled={mutationLoading || selectedProducts.length === 0}
           >
             {mutationLoading ? "Creando venta..." : "Crear Venta"}
           </Button>
         </Box>
       </Paper>
 
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Listado de Ventas
+      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3 }}>
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          📋 Listado de Ventas
         </Typography>
 
         {/* Filtros y Búsqueda */}
@@ -714,49 +856,25 @@ function Sales() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Editar Venta</DialogTitle>
+        <DialogTitle>Editar Venta #{editingSale?.id}</DialogTitle>
         <form onSubmit={handleEditSubmit}>
           <DialogContent>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Cliente"
-                  value={editFormData.clientId}
-                  onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      clientId: e.target.value,
-                    })
-                  }
-                  required
-                  disabled={!data?.clients || data.clients.length === 0}
-                >
-                  {data?.clients && data.clients.length > 0 ? (
-                    data.clients.map((client) => (
-                      <MenuItem key={client.id} value={client.id}>
-                        {client.name}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem value="">No hay clientes</MenuItem>
-                  )}
-                </TextField>
+                <Typography variant="subtitle2" gutterBottom>
+                  Cliente: {editingSale?.client?.name}
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Total: ${editingSale?.totalAmount}
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Método de Pago: {editingSale?.paymentMethod}
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Fecha: {editingSale?.createdAt ? new Date(editingSale.createdAt).toLocaleDateString() : ''}
+                </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Total"
-                  type="number"
-                  value={editFormData.total}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, total: e.target.value })
-                  }
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   select
@@ -767,43 +885,21 @@ function Sales() {
                   }
                   required
                 >
-                  <MenuItem value="completed">Completada</MenuItem>
                   <MenuItem value="pending">Pendiente</MenuItem>
+                  <MenuItem value="completed">Completada</MenuItem>
                   <MenuItem value="cancelled">Cancelada</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  select
-                  label="Método de Pago"
-                  value={editFormData.paymentMethod}
+                  label="Notas"
+                  multiline
+                  rows={3}
+                  value={editFormData.notes}
                   onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      paymentMethod: e.target.value,
-                    })
+                    setEditFormData({ ...editFormData, notes: e.target.value })
                   }
-                  required
-                >
-                  <MenuItem value="cash">Efectivo</MenuItem>
-                  <MenuItem value="credit">Crédito</MenuItem>
-                  <MenuItem value="transfer">Transferencia</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Fecha"
-                  type="date"
-                  value={editFormData.date}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, date: e.target.value })
-                  }
-                  required
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
                 />
               </Grid>
             </Grid>
@@ -842,3 +938,4 @@ function Sales() {
 }
 
 export default Sales;
+ 

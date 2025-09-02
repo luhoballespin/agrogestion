@@ -8,6 +8,7 @@ const typeDefs = gql`
     role: String!
     createdAt: String!
   }
+
   type Price {
     current: Float!
     currency: String!
@@ -20,9 +21,9 @@ const typeDefs = gql`
     category: String!
     description: String
     sku: String!
-    stock: Float!
+    stock: Float
     unit: String!
-    price: Price!
+    price: Price!   
     supplier: Supplier
     minStock: Float!
     location: Location
@@ -46,8 +47,8 @@ const typeDefs = gql`
     phone: String!
     address: Address
     businessInfo: BusinessInfo
-    creditLimit: Float!
-    paymentTerms: Int!
+    creditLimit: Float 
+    paymentTerms: Int
     status: String!
     notes: String
     createdAt: String!
@@ -66,11 +67,12 @@ const typeDefs = gql`
     businessName: String
     taxCategory: String
     taxStatus: String
+    cuit: String
   }
 
   type Sale {
     id: ID!
-    client: Client! # <--- Esto es importante
+    client: Client!
     totalAmount: Float!
     status: String!
     paymentMethod: String!
@@ -80,16 +82,22 @@ const typeDefs = gql`
   }
 
   type SaleProduct {
-    product: Product!
-    quantity: Int!
-    unitPrice: Float!
-    currency: String!
+    product: Product
+    quantity: Int
+    unitPrice: Float
+    currency: String
   }
 
   type Supplier {
     id: ID!
     name: String!
     contactInfo: ContactInfo!
+    businessInfo: BusinessInfo
+    paymentTerms: Int
+    status: String!
+    notes: String
+    createdAt: String!
+    updatedAt: String!
     products: [Product!]
   }
 
@@ -136,7 +144,7 @@ const typeDefs = gql`
       sku: String!
       stock: Float!
       unit: String!
-      price: Float!
+      price: Float!         
       currency: String
       supplier: ID
       minStock: Float
@@ -151,7 +159,7 @@ const typeDefs = gql`
       description: String
       stock: Float
       unit: String
-      price: Float
+      price: Float          
       currency: String
       supplier: ID
       minStock: Float
@@ -159,7 +167,7 @@ const typeDefs = gql`
       active: Boolean
     ): Product!
 
-    deleteProduct(id: ID!): Boolean!
+    deleteProduct(id: ID!): Product!
 
     createClient(
       name: String!
@@ -198,6 +206,26 @@ const typeDefs = gql`
     updateSale(id: ID!, status: String, notes: String): Sale!
 
     deleteSale(id: ID!): Boolean!
+
+    createSupplier(
+      name: String!
+      contactInfo: ContactInfoInput!
+      businessInfo: BusinessInfoInput
+      paymentTerms: Int
+      notes: String
+    ): Supplier!
+
+    updateSupplier(
+      id: ID!
+      name: String
+      contactInfo: ContactInfoInput
+      businessInfo: BusinessInfoInput
+      paymentTerms: Int
+      status: String
+      notes: String
+    ): Supplier!
+
+    deleteSupplier(id: ID!): Boolean!
   }
 
   input LocationInput {
@@ -217,6 +245,7 @@ const typeDefs = gql`
     businessName: String
     taxCategory: String
     taxStatus: String
+    cuit: String
   }
 
   input SaleProductInput {
@@ -224,6 +253,12 @@ const typeDefs = gql`
     quantity: Float!
     unitPrice: Float!
     currency: String
+  }
+
+  input ContactInfoInput {
+    email: String!
+    phone: String!
+    address: AddressInput
   }
 `;
 

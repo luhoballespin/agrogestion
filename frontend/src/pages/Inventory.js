@@ -25,6 +25,11 @@ import {
   Tooltip,
   Menu,
   TableSortLabel,
+  Container,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -34,6 +39,10 @@ import {
   FileDownload as FileDownloadIcon,
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
+  Inventory as InventoryIcon,
+  Category as CategoryIcon,
+  AttachMoney as MoneyIcon,
+  Scale as ScaleIcon,
 } from "@mui/icons-material";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -78,7 +87,7 @@ const CREATE_PRODUCT_MUTATION = gql`
     $stock: Float!
     $unit: String!
     $price: Float!
-    $currency: String!
+    $currency: String
   ) {
     createProduct(
       name: $name
@@ -172,7 +181,9 @@ function Inventory() {
     sku: "",
     category: "",
     stock: 0,
+    unit: "kg",
     price: 0,
+    currency: "USD",
     description: "",
   });
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
@@ -345,7 +356,9 @@ function Inventory() {
       sku: product.sku,
       category: product.category,
       stock: product.stock,
-      price: product.price,
+      unit: product.unit || "kg",
+      price: product.price?.current || 0,
+      currency: product.price?.currency || "USD",
       description: product.description || "",
     });
   };
@@ -411,8 +424,8 @@ function Inventory() {
       Categoría: product.category,
       Stock: product.stock,
       Unidad: product.unit,
-      Precio: product.price,
-      Moneda: product.currency,
+      Precio: product.price?.current || 0,
+      Moneda: product.price?.currency || "USD",
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -440,8 +453,8 @@ function Inventory() {
       product.category,
       product.stock,
       product.unit,
-      product.price,
-      product.currency,
+      product.price?.current || 0,
+      product.price?.currency || "USD",
     ]);
 
     doc.autoTable({
@@ -472,333 +485,509 @@ function Inventory() {
     );
 
   return (
-    <Box>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
-        <Typography variant="h4">Gestión de Inventario</Typography>
-        <Box>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleExportClick}
-            startIcon={<FileDownloadIcon />}
-          >
-            Exportar
-          </Button>
-          <Menu
-            anchorEl={exportMenuAnchor}
-            open={Boolean(exportMenuAnchor)}
-            onClose={handleExportClose}
-          >
-            <MenuItem onClick={exportToExcel}>
-              <ExcelIcon sx={{ mr: 1 }} /> Exportar a Excel
-            </MenuItem>
-            <MenuItem onClick={exportToPDF}>
-              <PdfIcon sx={{ mr: 1 }} /> Exportar a PDF
-            </MenuItem>
-          </Menu>
-        </Box>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4, textAlign: "center" }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{
+            fontWeight: "bold",
+            background: "linear-gradient(45deg, #2E7D32, #4CAF50)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            mb: 2,
+          }}
+        >
+          📦 Gestión de Inventario
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+          Administra el inventario de productos agropecuarios
+        </Typography>
       </Box>
-      <Typography variant="h4" gutterBottom>
-        Inventario
-      </Typography>
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Nuevo Producto
-        </Typography>
-        {/* Formulario de creación */}
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Nombre"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            select
-            label="Categoría"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-          >
-            <MenuItem value="cereal">Cereal</MenuItem>
-            <MenuItem value="fertilizante">Fertilizante</MenuItem>
-            <MenuItem value="semilla">Semilla</MenuItem>
-            <MenuItem value="otro">Otro</MenuItem>
-          </TextField>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="SKU"
-            name="sku"
-            value={formData.sku}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Stock"
-            name="stock"
-            type="number"
-            value={formData.stock}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            select
-            label="Unidad"
-            name="unit"
-            value={formData.unit}
-            onChange={handleChange}
-            required
-          >
-            <MenuItem value="kg">Kilogramos</MenuItem>
-            <MenuItem value="ton">Toneladas</MenuItem>
-            <MenuItem value="unit">Unidades</MenuItem>
-          </TextField>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Precio"
-            name="price"
-            type="number"
-            value={formData.price}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            select
-            label="Moneda"
-            name="currency"
-            value={formData.currency}
-            onChange={handleChange}
-            required
-          >
-            <MenuItem value="USD">USD</MenuItem>
-            <MenuItem value="ARS">ARS</MenuItem>
-          </TextField>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            disabled={mutationLoading}
-          >
-            {mutationLoading ? "Creando producto..." : "Crear Producto"}
-          </Button>
-        </Box>
-      </Paper>
 
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Listado de Productos
-        </Typography>
-
-        {/* Filtros y Búsqueda */}
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Buscar productos"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton onClick={handleClearSearch} size="small">
-                      <ClearIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
+      {/* Formulario Nuevo Producto */}
+      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+            }}
+          >
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
               }}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              select
-              label="Filtrar por categoría"
-              value={categoryFilter}
-              onChange={handleCategoryFilterChange}
             >
-              <MenuItem value="all">Todas las categorías</MenuItem>
-              <MenuItem value="cereal">Cereal</MenuItem>
-              <MenuItem value="fertilizer">Fertilizante</MenuItem>
-              <MenuItem value="seed">Semilla</MenuItem>
-              <MenuItem value="other">Otro</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              select
-              label="Filtrar por stock"
-              value={stockFilter}
-              onChange={handleStockFilterChange}
-            >
-              <MenuItem value="all">Todo el stock</MenuItem>
-              <MenuItem value="low">Stock bajo (&lt; 10)</MenuItem>
-              <MenuItem value="out">Sin stock</MenuItem>
-              <MenuItem value="available">Con stock</MenuItem>
-            </TextField>
-          </Grid>
-        </Grid>
-
-        {queryLoading ? (
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Mostrando {filteredAndSortedProducts?.length} de{" "}
-              {data?.products.length} productos
+              <InventoryIcon color="primary" />
+              Nuevo Producto
             </Typography>
-            {data?.products?.length === 0 ? (
-              <Typography color="error" sx={{ my: 2 }}>
-                No hay productos para mostrar.
-              </Typography>
-            ) : (
-              <>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === "sku"}
-                            direction={orderBy === "sku" ? order : "asc"}
-                            onClick={() => handleRequestSort("sku")}
-                          >
-                            SKU
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === "name"}
-                            direction={orderBy === "name" ? order : "asc"}
-                            onClick={() => handleRequestSort("name")}
-                          >
-                            Nombre
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === "category"}
-                            direction={orderBy === "category" ? order : "asc"}
-                            onClick={() => handleRequestSort("category")}
-                          >
-                            Categoría
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === "stock"}
-                            direction={orderBy === "stock" ? order : "asc"}
-                            onClick={() => handleRequestSort("stock")}
-                          >
-                            Stock
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === "price"}
-                            direction={orderBy === "price" ? order : "asc"}
-                            onClick={() => handleRequestSort("price")}
-                          >
-                            Precio
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>Acciones</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {(paginatedProducts || []).map((product) => (
-                        <TableRow
-                          key={product.id}
-                          sx={{
-                            backgroundColor:
-                              product.stock === 0
-                                ? "#ffebee"
-                                : product.stock < 10
-                                ? "#fff3e0"
-                                : "inherit",
-                          }}
-                        >
-                          <TableCell>{product.sku}</TableCell>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell>{product.stock}</TableCell>
-                          <TableCell>
-                            {product.price
-                              ? `${product.price.current} ${product.price.currency}`
-                              : "Sin precio"}
-                          </TableCell>
-                          <TableCell>
-                            <Box display="flex" gap={1}>
-                              <Tooltip title="Editar">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleEditClick(product)}
-                                  color="primary"
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Eliminar">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleDeleteClick(product.id)}
-                                  color="error"
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <TablePagination
-                  component="div"
-                  count={filteredAndSortedProducts?.length || 0}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  labelRowsPerPage="Filas por página:"
-                  labelDisplayedRows={({ from, to, count }) =>
-                    `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
-                  }
+            <Box>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleExportClick}
+                startIcon={<FileDownloadIcon />}
+                sx={{ borderRadius: 2 }}
+              >
+                Exportar
+              </Button>
+              <Menu
+                anchorEl={exportMenuAnchor}
+                open={Boolean(exportMenuAnchor)}
+                onClose={handleExportClose}
+              >
+                <MenuItem onClick={exportToExcel}>
+                  <ExcelIcon sx={{ mr: 1 }} /> Exportar a Excel
+                </MenuItem>
+                <MenuItem onClick={exportToPDF}>
+                  <PdfIcon sx={{ mr: 1 }} /> Exportar a PDF
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Box>
+          {/* Formulario de creación */}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nombre del Producto"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <InventoryIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                  }}
                 />
-              </>
-            )}
-          </>
-        )}
-      </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Categoría"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <CategoryIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  <MenuItem value="cereal">Cereal</MenuItem>
+                  <MenuItem value="fertilizante">Fertilizante</MenuItem>
+                  <MenuItem value="semilla">Semilla</MenuItem>
+                  <MenuItem value="otro">Otro</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="SKU"
+                  name="sku"
+                  value={formData.sku}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                  placeholder="Código único del producto"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Stock Inicial"
+                  name="stock"
+                  type="number"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <ScaleIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Unidad de Medida"
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                >
+                  <MenuItem value="kg">Kilogramos</MenuItem>
+                  <MenuItem value="ton">Toneladas</MenuItem>
+                  <MenuItem value="unit">Unidades</MenuItem>
+                  <MenuItem value="litros">Litros</MenuItem>
+                  <MenuItem value="m3">Metros Cúbicos</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Precio Unitario"
+                  name="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <MoneyIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Moneda"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  required
+                  variant="outlined"
+                >
+                  <MenuItem value="USD">USD</MenuItem>
+                  <MenuItem value="ARS">ARS</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  disabled={mutationLoading}
+                  startIcon={<InventoryIcon />}
+                  sx={{
+                    mt: 2,
+                    borderRadius: 2,
+                    py: 1.5,
+                    px: 4,
+                    fontSize: "1.1rem",
+                  }}
+                  fullWidth
+                >
+                  {mutationLoading ? "Creando producto..." : "Crear Producto"}
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </CardContent>
+      </Card>
+      {/* Listado de Productos */}
+      <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              mb: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            📋 Listado de Productos
+          </Typography>
+
+          {/* Filtros y Búsqueda */}
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Buscar productos"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton onClick={handleClearSearch} size="small">
+                        <ClearIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                select
+                label="Filtrar por categoría"
+                value={categoryFilter}
+                onChange={handleCategoryFilterChange}
+                variant="outlined"
+              >
+                <MenuItem value="all">Todas las categorías</MenuItem>
+                <MenuItem value="cereal">Cereal</MenuItem>
+                <MenuItem value="fertilizante">Fertilizante</MenuItem>
+                <MenuItem value="semilla">Semilla</MenuItem>
+                <MenuItem value="otro">Otro</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                select
+                label="Filtrar por stock"
+                value={stockFilter}
+                onChange={handleStockFilterChange}
+                variant="outlined"
+              >
+                <MenuItem value="all">Todo el stock</MenuItem>
+                <MenuItem value="low">Stock bajo (&lt; 10)</MenuItem>
+                <MenuItem value="out">Sin stock</MenuItem>
+                <MenuItem value="available">Con stock</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
+
+          {queryLoading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress size={60} />
+            </Box>
+          ) : (
+            <>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Mostrando {filteredAndSortedProducts?.length} de{" "}
+                {data?.products.length} productos
+              </Typography>
+              {data?.products?.length === 0 ? (
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <InventoryIcon
+                    sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+                  />
+                  <Typography variant="h6" color="text.secondary">
+                    No hay productos para mostrar
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Comienza agregando tu primer producto
+                  </Typography>
+                </Box>
+              ) : (
+                <>
+                  <TableContainer
+                    sx={{ borderRadius: 2, border: "1px solid #e0e0e0" }}
+                  >
+                    <Table>
+                      <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                        <TableRow>
+                          <TableCell>
+                            <TableSortLabel
+                              active={orderBy === "sku"}
+                              direction={orderBy === "sku" ? order : "asc"}
+                              onClick={() => handleRequestSort("sku")}
+                            >
+                              SKU
+                            </TableSortLabel>
+                          </TableCell>
+                          <TableCell>
+                            <TableSortLabel
+                              active={orderBy === "name"}
+                              direction={orderBy === "name" ? order : "asc"}
+                              onClick={() => handleRequestSort("name")}
+                            >
+                              Nombre
+                            </TableSortLabel>
+                          </TableCell>
+                          <TableCell>
+                            <TableSortLabel
+                              active={orderBy === "category"}
+                              direction={orderBy === "category" ? order : "asc"}
+                              onClick={() => handleRequestSort("category")}
+                            >
+                              Categoría
+                            </TableSortLabel>
+                          </TableCell>
+                          <TableCell>
+                            <TableSortLabel
+                              active={orderBy === "stock"}
+                              direction={orderBy === "stock" ? order : "asc"}
+                              onClick={() => handleRequestSort("stock")}
+                            >
+                              Stock
+                            </TableSortLabel>
+                          </TableCell>
+                          <TableCell>
+                            <TableSortLabel
+                              active={orderBy === "price"}
+                              direction={orderBy === "price" ? order : "asc"}
+                              onClick={() => handleRequestSort("price")}
+                            >
+                              Precio
+                            </TableSortLabel>
+                          </TableCell>
+                          <TableCell align="center">Acciones</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(paginatedProducts || []).map((product) => (
+                          <TableRow
+                            key={product.id}
+                            hover
+                            sx={{
+                              backgroundColor:
+                                product.stock === 0
+                                  ? "#ffebee"
+                                  : product.stock < 10
+                                  ? "#fff3e0"
+                                  : "inherit",
+                            }}
+                          >
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>
+                                {product.sku}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <InventoryIcon
+                                  fontSize="small"
+                                  color="primary"
+                                />
+                                <Typography variant="body2">
+                                  {product.name}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={product.category}
+                                color="primary"
+                                size="small"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <ScaleIcon fontSize="small" color="action" />
+                                <Typography variant="body2">
+                                  {product.stock} {product.unit}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <MoneyIcon fontSize="small" color="action" />
+                                <Typography variant="body2">
+                                  {product.price
+                                    ? `${product.price.current} ${product.price.currency}`
+                                    : "Sin precio"}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Box
+                                display="flex"
+                                gap={1}
+                                justifyContent="center"
+                              >
+                                <Tooltip title="Editar">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleEditClick(product)}
+                                    color="primary"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Eliminar">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleDeleteClick(product.id)
+                                    }
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
+                    count={filteredAndSortedProducts?.length || 0}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    labelRowsPerPage="Filas por página:"
+                    labelDisplayedRows={({ from, to, count }) =>
+                      `${from}-${to} de ${
+                        count !== -1 ? count : `más de ${to}`
+                      }`
+                    }
+                  />
+                </>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Edit Dialog */}
       <Dialog
@@ -806,10 +995,16 @@ function Inventory() {
         onClose={() => setEditingProduct(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle>Editar Producto</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <EditIcon color="primary" />
+            Editar Producto
+          </Box>
+        </DialogTitle>
         <form onSubmit={handleEditSubmit}>
-          <DialogContent>
+          <DialogContent sx={{ pt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -819,6 +1014,7 @@ function Inventory() {
                   value={editFormData.name}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -829,6 +1025,7 @@ function Inventory() {
                   value={editFormData.sku}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -840,11 +1037,12 @@ function Inventory() {
                   value={editFormData.category}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 >
                   <MenuItem value="cereal">Cereal</MenuItem>
-                  <MenuItem value="fertilizer">Fertilizante</MenuItem>
-                  <MenuItem value="seed">Semilla</MenuItem>
-                  <MenuItem value="other">Otro</MenuItem>
+                  <MenuItem value="fertilizante">Fertilizante</MenuItem>
+                  <MenuItem value="semilla">Semilla</MenuItem>
+                  <MenuItem value="otro">Otro</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -856,6 +1054,7 @@ function Inventory() {
                   value={editFormData.stock}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -867,10 +1066,13 @@ function Inventory() {
                   value={editFormData.unit}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 >
                   <MenuItem value="kg">Kilogramos</MenuItem>
                   <MenuItem value="ton">Toneladas</MenuItem>
                   <MenuItem value="unit">Unidades</MenuItem>
+                  <MenuItem value="litros">Litros</MenuItem>
+                  <MenuItem value="m3">Metros Cúbicos</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -882,6 +1084,7 @@ function Inventory() {
                   value={editFormData.price}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -893,6 +1096,7 @@ function Inventory() {
                   value={editFormData.currency}
                   onChange={handleEditChange}
                   required
+                  variant="outlined"
                 >
                   <MenuItem value="USD">USD</MenuItem>
                   <MenuItem value="ARS">ARS</MenuItem>
@@ -900,9 +1104,19 @@ function Inventory() {
               </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditingProduct(null)}>Cancelar</Button>
-            <Button type="submit" variant="contained" color="primary">
+          <DialogActions sx={{ p: 3, pt: 1 }}>
+            <Button
+              onClick={() => setEditingProduct(null)}
+              sx={{ borderRadius: 2 }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              sx={{ borderRadius: 2 }}
+            >
               Guardar Cambios
             </Button>
           </DialogActions>
@@ -910,7 +1124,11 @@ function Inventory() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteProductId} onClose={() => setDeleteProductId(null)}>
+      <Dialog
+        open={!!deleteProductId}
+        onClose={() => setDeleteProductId(null)}
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
         <DialogTitle>Confirmar Eliminación</DialogTitle>
         <DialogContent>
           <Typography>
@@ -918,18 +1136,24 @@ function Inventory() {
             puede deshacer.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteProductId(null)}>Cancelar</Button>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button
+            onClick={() => setDeleteProductId(null)}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancelar
+          </Button>
           <Button
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
+            sx={{ borderRadius: 2 }}
           >
             Eliminar
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 }
 

@@ -12,17 +12,22 @@ const resolvers = require("./resolvers");
 
 // Configuración de la base de datos
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/agrogestión", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI )
   .then(() => console.log("Conectado a MongoDB"))
   .catch((err) => console.error("Error conectando a MongoDB:", err));
 
 // Configuración de Express
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// Configuración CORS específica
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Endpoint proxy para cereales (Agrofy)
 app.get("/api/cereales", (req, res) => {
   // Datos de ejemplo
@@ -68,6 +73,12 @@ const server = new ApolloServer({
   },
   formatError: (err) => {
     console.error("GraphQL Error:", err);
+    
+    // No exponer detalles internos en producción
+    if (process.env.NODE_ENV === 'production') {
+      return new Error('Error interno del servidor');
+    }
+    
     return err;
   },
 });
@@ -76,16 +87,20 @@ const server = new ApolloServer({
 
 // Iniciar el servidor
 async function startServer() {
-  await server.start();
-  server.applyMiddleware({ app });
+  try {
+    await server.start();
+    server.applyMiddleware({ app, path: '/graphql' });
 
-  const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    console.log(
-      `GraphQL endpoint: http://localhost:${PORT}${server.graphqlPath}`
-    );
-  });
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`📊 GraphQL endpoint: http://localhost:${PORT}${server.graphqlPath}`);
+      console.log(`🌾 Sistema de Gestión Agropecuaria iniciado correctamente`);
+    });
+  } catch (error) {
+    console.error('❌ Error al iniciar el servidor:', error);
+    process.exit(1);
+  }
 }
 
 startServer();

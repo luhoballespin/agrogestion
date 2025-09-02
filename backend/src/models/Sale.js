@@ -6,28 +6,31 @@ const saleSchema = new mongoose.Schema({
     ref: 'Client',
     required: true,
   },
-  products: [{
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true,
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    unitPrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    currency: {
-      type: String,
-      enum: ['ARS', 'USD'],
-      default: 'ARS',
-    },
-  }],
+  products: {
+    type: [{
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true,
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+      },
+      unitPrice: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      currency: {
+        type: String,
+        enum: ['ARS', 'USD'],
+        default: 'ARS',
+      },
+    }],
+    validate: [arr => arr.length > 0, 'Debe haber al menos un producto en la venta'],
+  },
   totalAmount: {
     type: Number,
     required: true,
@@ -65,4 +68,4 @@ saleSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Sale', saleSchema); 
+module.exports = mongoose.model('Sale', saleSchema);

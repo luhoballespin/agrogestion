@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Clients from "./pages/Clients";
 import Sales from "./pages/Sales";
+import Suppliers from "./pages/Suppliers";
 import { client } from "./utils/api";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             <Route path="inventory" element={<Inventory />} />
             <Route path="clients" element={<Clients />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="suppliers" element={<Suppliers />} />
           </Route>
         </Routes>
       </Box>
