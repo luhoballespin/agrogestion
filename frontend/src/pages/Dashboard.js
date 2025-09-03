@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { 
-  Grid, 
-  Paper, 
-  Typography, 
-  Box, 
-  CircularProgress, 
+import {
+  Grid,
+  Paper,
+  Typography,
+  Box,
+  CircularProgress,
   Card,
   CardContent,
   Chip,
   Alert,
-  LinearProgress
+  LinearProgress,
 } from "@mui/material";
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
   Tooltip,
   BarChart,
   Bar,
@@ -24,7 +24,7 @@ import {
   YAxis,
   CartesianGrid,
   LineChart,
-  Line
+  Line,
 } from "recharts";
 import { useQuery, gql } from "@apollo/client";
 import SummaryCard from "../components/SummaryCard";
@@ -36,14 +36,14 @@ import {
   Inventory,
   People,
   Warning,
-  CheckCircle
+  CheckCircle,
 } from "@mui/icons-material";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const GET_SALES = gql`
   query GetSales {
-    sales { 
+    sales {
       id
       totalAmount
       status
@@ -54,7 +54,7 @@ const GET_SALES = gql`
           name
           category
         }
-        quantity 
+        quantity
         unitPrice
         currency
       }
@@ -97,8 +97,11 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [loadingCereales, setLoadingCereales] = useState(true);
 
-  const { data: salesData, loading: loadingSales } = useQuery(GET_SALES);
-  const { data: productsData, loading: loadingProducts } = useQuery(GET_PRODUCTS);
+  const { data: salesData, loading: loadingSales } = useQuery(GET_SALES, {
+    fetchPolicy: "network-only",
+  });
+  const { data: productsData, loading: loadingProducts } =
+    useQuery(GET_PRODUCTS);
   const { data: clientsData, loading: loadingClients } = useQuery(GET_CLIENTS);
 
   useEffect(() => {
@@ -153,8 +156,8 @@ function Dashboard() {
   if (salesData && salesData.sales) {
     salesData.sales.forEach((venta) => {
       // Contar por estado
-      if (venta.status === 'completed') ventasCompletadas++;
-      if (venta.status === 'pending') ventasPendientes++;
+      if (venta.status === "completed") ventasCompletadas++;
+      if (venta.status === "pending") ventasPendientes++;
 
       // Procesar productos
       venta.products.forEach((p) => {
@@ -165,16 +168,19 @@ function Dashboard() {
 
         // Por producto
         ventasPorProducto[nombre] = (ventasPorProducto[nombre] || 0) + cantidad;
-        
+
         // Por categoría
-        ventasPorCategoria[categoria] = (ventasPorCategoria[categoria] || 0) + cantidad;
+        ventasPorCategoria[categoria] =
+          (ventasPorCategoria[categoria] || 0) + cantidad;
 
         totalCantidadVendida += cantidad;
         totalVentasDinero += precioUnitario * cantidad;
       });
 
       // Por mes
-      const mes = new Date(venta.createdAt).toLocaleDateString('es-ES', { month: 'short' });
+      const mes = new Date(venta.createdAt).toLocaleDateString("es-ES", {
+        month: "short",
+      });
       ventasPorMes[mes] = (ventasPorMes[mes] || 0) + venta.totalAmount;
     });
   }
@@ -182,50 +188,74 @@ function Dashboard() {
   // Datos para gráficos
   const ventasData = Object.entries(ventasPorProducto).map(([name, value]) => ({
     name,
-    value: totalCantidadVendida > 0 ? ((value / totalCantidadVendida) * 100).toFixed(2) : 0,
+    value:
+      totalCantidadVendida > 0
+        ? ((value / totalCantidadVendida) * 100).toFixed(2)
+        : 0,
   }));
 
-  const categoriaData = Object.entries(ventasPorCategoria).map(([name, value]) => ({
-    name,
-    cantidad: value,
-  }));
+  const categoriaData = Object.entries(ventasPorCategoria).map(
+    ([name, value]) => ({
+      name,
+      cantidad: value,
+    })
+  );
 
-  const ventasMensualesData = Object.entries(ventasPorMes).map(([name, value]) => ({
-    mes: name,
-    total: value,
-  }));
+  const ventasMensualesData = Object.entries(ventasPorMes).map(
+    ([name, value]) => ({
+      mes: name,
+      total: value,
+    })
+  );
 
   // Métricas de inventario
-  const productosBajoStock = productsData?.products?.filter(p => p.stock <= p.minStock) || [];
-  const productosSinStock = productsData?.products?.filter(p => p.stock === 0) || [];
+  const productosBajoStock =
+    productsData?.products?.filter((p) => p.stock <= p.minStock) || [];
+  const productosSinStock =
+    productsData?.products?.filter((p) => p.stock === 0) || [];
   const totalProductos = productsData?.products?.length || 0;
-  const productosActivos = productsData?.products?.filter(p => p.active)?.length || 0;
+  const productosActivos =
+    productsData?.products?.filter((p) => p.active)?.length || 0;
 
   // Métricas de clientes
-  const clientesActivos = clientsData?.clients?.filter(c => c.status === 'active')?.length || 0;
+  const clientesActivos =
+    clientsData?.clients?.filter((c) => c.status === "active")?.length || 0;
   const totalClientes = clientsData?.clients?.length || 0;
 
   if (loading || loadingSales || loadingProducts || loadingClients) {
     return (
-      <Box display="flex" flexDirection="column" alignItems="center" minHeight="80vh" justifyContent="center">
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        minHeight="80vh"
+        justifyContent="center"
+      >
         <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 2 }}>Cargando Dashboard...</Typography>
-        <LinearProgress sx={{ width: '50%', mt: 2 }} />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Cargando Dashboard...
+        </Typography>
+        <LinearProgress sx={{ width: "50%", mt: 2 }} />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+    <Box sx={{ p: 3, backgroundColor: "#f5f6fa", minHeight: "100vh" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ 
-          fontWeight: 'bold', 
-          background: 'linear-gradient(45deg, #2E7D32, #4CAF50)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{
+            fontWeight: "bold",
+            background: "linear-gradient(45deg, #2E7D32, #4CAF50)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
           🌾 Dashboard Agropecuario
         </Typography>
         <Typography variant="subtitle1" color="text.secondary">
@@ -238,7 +268,9 @@ function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <SummaryCard
             title="Total Ventas"
-            value={`$${totalVentasDinero.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
+            value={`$${totalVentasDinero.toLocaleString("es-AR", {
+              minimumFractionDigits: 2,
+            })}`}
             subtitle={`${ventasCompletadas} completadas, ${ventasPendientes} pendientes`}
             icon={<AttachMoney />}
             color="#2E7D32"
@@ -266,7 +298,9 @@ function Dashboard() {
           <SummaryCard
             title="Cotización Dólar"
             value={dolarOficial ? `$${dolarOficial.venta}` : "N/A"}
-            subtitle={dolarOficial ? `Compra: $${dolarOficial.compra}` : "Sin datos"}
+            subtitle={
+              dolarOficial ? `Compra: $${dolarOficial.compra}` : "Sin datos"
+            }
             icon={<TrendingUp />}
             color="#F57C00"
           />
@@ -283,8 +317,11 @@ function Dashboard() {
                   Productos sin stock ({productosSinStock.length})
                 </Typography>
                 <Typography variant="body2">
-                  {productosSinStock.slice(0, 3).map(p => p.name).join(', ')}
-                  {productosSinStock.length > 3 && '...'}
+                  {productosSinStock
+                    .slice(0, 3)
+                    .map((p) => p.name)
+                    .join(", ")}
+                  {productosSinStock.length > 3 && "..."}
                 </Typography>
               </Alert>
             </Grid>
@@ -296,8 +333,11 @@ function Dashboard() {
                   Productos bajo stock mínimo ({productosBajoStock.length})
                 </Typography>
                 <Typography variant="body2">
-                  {productosBajoStock.slice(0, 3).map(p => p.name).join(', ')}
-                  {productosBajoStock.length > 3 && '...'}
+                  {productosBajoStock
+                    .slice(0, 3)
+                    .map((p) => p.name)
+                    .join(", ")}
+                  {productosBajoStock.length > 3 && "..."}
                 </Typography>
               </Alert>
             </Grid>
@@ -311,7 +351,11 @@ function Dashboard() {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: 400 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: "flex", alignItems: "center" }}
+              >
                 <ShoppingCart sx={{ mr: 1 }} />
                 Ventas por Producto
               </Typography>
@@ -339,8 +383,15 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <Box display="flex" alignItems="center" justifyContent="center" height={300}>
-                  <Typography color="text.secondary">No hay datos de ventas</Typography>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  height={300}
+                >
+                  <Typography color="text.secondary">
+                    No hay datos de ventas
+                  </Typography>
                 </Box>
               )}
             </CardContent>
@@ -351,7 +402,11 @@ function Dashboard() {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: 400 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: "flex", alignItems: "center" }}
+              >
                 <TrendingUp sx={{ mr: 1 }} />
                 Ventas por Categoría
               </Typography>
@@ -366,8 +421,15 @@ function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <Box display="flex" alignItems="center" justifyContent="center" height={300}>
-                  <Typography color="text.secondary">No hay datos de categorías</Typography>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  height={300}
+                >
+                  <Typography color="text.secondary">
+                    No hay datos de categorías
+                  </Typography>
                 </Box>
               )}
             </CardContent>
@@ -380,7 +442,11 @@ function Dashboard() {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: "flex", alignItems: "center" }}
+              >
                 <TrendingUp sx={{ mr: 1 }} />
                 Cotizaciones de Cereales
               </Typography>
@@ -392,19 +458,28 @@ function Dashboard() {
                 <Grid container spacing={2}>
                   {Object.entries(cereales).map(([nombre, datos]) => (
                     <Grid item xs={12} sm={6} md={4} key={nombre}>
-                      <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          textAlign: "center",
+                          backgroundColor: "#f8f9fa",
+                        }}
+                      >
                         <Typography variant="h6" color="primary">
                           {nombre.charAt(0).toUpperCase() + nombre.slice(1)}
                         </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2E7D32' }}>
+                        <Typography
+                          variant="h5"
+                          sx={{ fontWeight: "bold", color: "#2E7D32" }}
+                        >
                           ${datos.precio}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {datos.unidad}
                         </Typography>
-                        <Chip 
-                          label={datos.fecha} 
-                          size="small" 
+                        <Chip
+                          label={datos.fecha}
+                          size="small"
                           sx={{ mt: 1 }}
                           color="primary"
                           variant="outlined"
@@ -426,44 +501,72 @@ function Dashboard() {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ display: "flex", alignItems: "center" }}
+              >
                 <CheckCircle sx={{ mr: 1 }} />
                 Estado del Sistema
               </Typography>
               <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="body2">Productos Activos</Typography>
                   <Typography variant="body2" color="primary">
                     {productosActivos}/{totalProductos}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(productosActivos / totalProductos) * 100} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(productosActivos / totalProductos) * 100}
                   sx={{ mb: 2 }}
                 />
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="body2">Clientes Activos</Typography>
                   <Typography variant="body2" color="primary">
                     {clientesActivos}/{totalClientes}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(clientesActivos / totalClientes) * 100} 
+                <LinearProgress
+                  variant="determinate"
+                  value={(clientesActivos / totalClientes) * 100}
                   sx={{ mb: 2 }}
                 />
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="body2">Ventas Completadas</Typography>
                   <Typography variant="body2" color="success.main">
                     {ventasCompletadas}/{ventasCompletadas + ventasPendientes}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={ventasCompletadas + ventasPendientes > 0 ? (ventasCompletadas / (ventasCompletadas + ventasPendientes)) * 100 : 0} 
+                <LinearProgress
+                  variant="determinate"
+                  value={
+                    ventasCompletadas + ventasPendientes > 0
+                      ? (ventasCompletadas /
+                          (ventasCompletadas + ventasPendientes)) *
+                        100
+                      : 0
+                  }
                   color="success"
                 />
               </Box>
